@@ -1,1 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Scramble Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0dc;
+    --green-dark: #6b8f5e;
+    --green-light: #c8dbb8;
+    --green-bg: #b8d4a0;
+    --brown: #5a3e28;
+    --pink: #e8867a;
+    --gold: #e8c45a;
+    --white: #fffef5;
+  }
 
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--green-light);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Background blobs like the slide */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    background: var(--green-bg);
+    z-index: 0;
+  }
+  body::before { width: 300px; height: 280px; top: -80px; left: -80px; }
+  body::after  { width: 250px; height: 230px; bottom: -60px; right: 20px; }
+
+  .blob2 {
+    position: fixed;
+    width: 200px; height: 180px;
+    background: var(--green-bg);
+    border-radius: 50%;
+    bottom: 40px; left: -50px;
+    z-index: 0;
+  }
+
+  /* Pink squiggle decoration */
+  .squiggle {
+    position: fixed;
+    top: 10px; right: 80px;
+    font-size: 80px;
+    color: var(--pink);
+    z-index: 0;
+    transform: rotate(-10deg);
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* Gold stars */
+  .star {
+    position: fixed;
+    color: var(--gold);
+    font-size: 28px;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .star1 { bottom: 120px; left: 60px; }
+  .star2 { top: 80px; right: 280px; font-size: 18px; }
+
+  /* Main card */
+  .card {
+    background: var(--cream);
+    border: 3px solid var(--brown);
+    border-radius: 20px;
+    padding: 40px 50px;
+    width: 90%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 6px 6px 0px var(--brown);
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Welcome screen */
+  .welcome-title-small {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: var(--brown);
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .welcome-title-big {
+    font-family: 'Fredoka One', cursive;
+    color: var(--green-dark);
+    font-size: 3.2rem;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .course-tag {
+    font-family: 'Nunito', sans-serif;
+    color: var(--brown);
+    font-size: 0.95rem;
+    margin-bottom: 30px;
+    opacity: 0.8;
+  }
+
+  .difficulty-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    color: var(--brown);
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .difficulty-btns {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+  }
+
+  .diff-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    padding: 10px 24px;
+    border: 2.5px solid var(--brown);
+    border-radius: 50px;
+    background: var(--white);
+    color: var(--brown);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .diff-btn:hover, .diff-btn.selected {
+    background: var(--green-dark);
+    color: white;
+    border-color: var(--green-dark);
+    transform: translateY(-2px);
+  }
+
+  .start-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    padding: 14px 40px;
+    background: var(--green-dark);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--brown);
+    transition: all 0.2s;
+  }
+  .start-btn:hover {
+    background: var(--brown);
+    transform: translateY(-2px);
+    box-shadow: 4px 5px 0 #2a1a08;
+  }
+
+  /* Game screen */
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .score-badge {
+    background: var(--green-dark);
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    padding: 6px 18px;
+    border-radius: 50px;
+  }
+
+  .lives-display {
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+  }
+
+  .progress-text {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: var(--brown);
+    font-size: 0.9rem;
+  }
+
+  .scrambled-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: var(--brown);
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .scrambled-word {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    color: var(--green-dark);
+    margin-bottom: 28px;
+    letter-spacing: 6px;
+    word-break: break-all;
+  }
+
+  .timer-bar-wrap {
+    background: #e0d9c0;
+    border-radius: 50px;
+    height: 10px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%;
+    background: var(--green-dark);
+    border-radius: 50px;
+    transition: width 1s linear, background 0.3s;
+    width: 100%;
+  }
+  .timer-bar.warning { background: var(--pink); }
+
+  .guess-input {
+    width: 100%;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    padding: 14px 20px;
+    border: 2.5px solid var(--brown);
+    border-radius: 14px;
+    background: var(--white);
+    color: var(--brown);
+    outline: none;
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 3px;
+  }
+  .guess-input:focus { border-color: var(--green-dark); box-shadow: 0 0 0 3px rgba(107,143,94,0.2); }
+
+  .guess-btn {
+    width: 100%;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    padding: 13px;
+    background: var(--green-dark);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--brown);
+    transition: all 0.15s;
+  }
+  .guess-btn:hover {
+    background: var(--brown);
+    transform: translateY(-2px);
+  }
+
+  .feedback {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    text-align: center;
+    margin-top: 14px;
+    min-height: 24px;
+    transition: all 0.3s;
+  }
+  .feedback.correct { color: var(--green-dark); }
+  .feedback.wrong   { color: var(--pink); }
+  .feedback.timeout { color: #b8860b; }
+
+  /* Results screen */
+  .results-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    color: var(--green-dark);
+    margin-bottom: 6px;
+  }
+  .results-subtitle {
+    font-family: 'Nunito', sans-serif;
+    color: var(--brown);
+    opacity: 0.75;
+    margin-bottom: 28px;
+  }
+  .final-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 4rem;
+    color: var(--green-dark);
+    margin: 10px 0;
+  }
+  .score-label { font-family: 'Nunito', sans-serif; font-weight: 700; color: var(--brown); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+  .play-again-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    padding: 14px 44px;
+    background: var(--green-dark);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--brown);
+    margin-top: 28px;
+    transition: all 0.2s;
+  }
+  .play-again-btn:hover { background: var(--brown); transform: translateY(-2px); }
+
+  /* Shake animation */
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+  }
+  .shake { animation: shake 0.4s ease; }
+
+  /* Pop animation */
+  @keyframes pop {
+    0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)}
+  }
+  .pop { animation: pop 0.3s ease; }
+</style>
+</head>
+<body>
+
+<div class="blob2"></div>
+<div class="squiggle">~</div>
+<div class="star star1">✦</div>
+<div class="star star2">✦</div>
+
+<div class="card">
+
+  <!-- WELCOME SCREEN -->
+  <div class="screen active" id="screen-welcome">
+    <p class="welcome-title-small">Hi, Students! Let's Play</p>
+    <div class="welcome-title-big">Word<br>Scramble<br>Game</div>
+
+
+    <p class="difficulty-label">Choose Difficulty:</p>
+    <div class="difficulty-btns">
+      <button class="diff-btn selected" data-level="easy" onclick="selectDiff(this)">Easy 🌱</button>
+      <button class="diff-btn" data-level="medium" onclick="selectDiff(this)">Medium ☕</button>
+      <button class="diff-btn" data-level="hard" onclick="selectDiff(this)">Hard 🔥</button>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">Start Game →</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="screen-game">
+    <div class="game-header">
+      <div class="score-badge">Score: <span id="score-display">0</span></div>
+      <div class="progress-text" id="progress-text">Word 1 / 4</div>
+      <div class="lives-display" id="lives-display">❤️❤️❤️</div>
+    </div>
+
+    <div class="scrambled-label">Unscramble this word:</div>
+    <div class="scrambled-word" id="scrambled-word">_ _ _ _ _</div>
+
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <input class="guess-input" id="guess-input" type="text" placeholder="Type your answer..." autocomplete="off" onkeydown="if(event.key==='Enter') submitGuess()" />
+    <button class="guess-btn" onclick="submitGuess()">Submit Guess ✓</button>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="screen-results">
+    <div class="results-title">🎉 Game Over!</div>
+    <div class="results-subtitle">Here are your final results!</div>
+    <div class="score-label">Your Total Score</div>
+    <div class="final-score" id="final-score">0</div>
+    <div class="score-label" id="result-msg"></div>
+    <br>
+    <button class="play-again-btn" onclick="resetGame()">Play Again 🔄</button>
+  </div>
+
+</div>
+
+<script>
+  const levels = {
+    easy:   ["apple", "cat", "sun", "book"],
+    medium: ["python", "coffee", "laptop", "bridge"],
+    hard:   ["challenge", "programming", "dictionary", "scramble"]
+  };
+
+  let selectedLevel = "easy";
+  let words = [];
+  let currentIndex = 0;
+  let score = 0;
+  let lives = 3;
+  let timerInterval = null;
+  let timeLeft = 15;
+  const TIME_LIMIT = 15;
+
+  function selectDiff(btn) {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedLevel = btn.dataset.level;
+  }
+
+  function scrambleWord(word) {
+    if (word.length <= 1) return word;
+    let arr, scrambled;
+    do {
+      arr = word.split('');
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      scrambled = arr.join('');
+    } while (scrambled === word);
+    return scrambled;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function startGame() {
+    words = shuffle([...levels[selectedLevel]]);
+    currentIndex = 0;
+    score = 0;
+    showScreen('screen-game');
+    loadWord();
+  }
+
+  function loadWord() {
+    if (currentIndex >= words.length) { endGame(); return; }
+    lives = 3;
+    const word = words[currentIndex];
+    const scrambled = scrambleWord(word);
+
+    document.getElementById('scrambled-word').textContent = scrambled.toUpperCase();
+    document.getElementById('score-display').textContent = score;
+    document.getElementById('progress-text').textContent = `Word ${currentIndex + 1} / ${words.length}`;
+    updateLives();
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('guess-input').value = '';
+    document.getElementById('guess-input').focus();
+
+    startTimer();
+  }
+
+  function updateLives() {
+    const hearts = ['❤️', '❤️', '❤️'].slice(0, lives).join('') || '💔';
+    document.getElementById('lives-display').textContent = hearts;
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = TIME_LIMIT;
+    const bar = document.getElementById('timer-bar');
+    bar.style.width = '100%';
+    bar.classList.remove('warning');
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      const pct = (timeLeft / TIME_LIMIT) * 100;
+      bar.style.width = pct + '%';
+      if (pct < 35) bar.classList.add('warning');
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        showFeedback(`⏰ Time's up! The word was: ${words[currentIndex].toUpperCase()}`, 'timeout');
+        setTimeout(nextWord, 1800);
+      }
+    }, 1000);
+  }
+
+  function submitGuess() {
+    const guess = document.getElementById('guess-input').value.trim().toLowerCase();
+    const original = words[currentIndex];
+    if (!guess) return;
+
+    if (guess === original) {
+      clearInterval(timerInterval);
+      score += 10;
+      document.getElementById('score-display').textContent = score;
+      showFeedback('✅ Correct! +10 points', 'correct');
+      document.getElementById('scrambled-word').classList.add('pop');
+      setTimeout(() => document.getElementById('scrambled-word').classList.remove('pop'), 300);
+      setTimeout(nextWord, 1200);
+    } else {
+      lives--;
+      updateLives();
+      if (lives > 0) {
+        showFeedback(`❌ Wrong guess! ${lives} ${lives === 1 ? 'life' : 'lives'} left.`, 'wrong');
+        document.getElementById('guess-input').classList.add('shake');
+        setTimeout(() => document.getElementById('guess-input').classList.remove('shake'), 400);
+        document.getElementById('guess-input').value = '';
+      } else {
+        clearInterval(timerInterval);
+        showFeedback(`💔 Game Over! The word was: ${original.toUpperCase()}`, 'wrong');
+        setTimeout(nextWord, 1800);
+      }
+    }
+  }
+
+  function showFeedback(msg, type) {
+    const el = document.getElementById('feedback');
+    el.textContent = msg;
+    el.className = 'feedback ' + type;
+  }
+
+  function nextWord() {
+    currentIndex++;
+    loadWord();
+  }
+
+  function endGame() {
+    clearInterval(timerInterval);
+    document.getElementById('final-score').textContent = score;
+    const max = words.length * 10;
+    let msg = score === max ? '🏆 Perfect Score!' : score >= max / 2 ? '👏 Great job!' : '💪 Keep practicing!';
+    document.getElementById('result-msg').textContent = msg;
+    showScreen('screen-results');
+  }
+
+  function resetGame() {
+    showScreen('screen-welcome');
+  }
+</script>
+</body>
+</html>
